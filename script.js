@@ -103,7 +103,68 @@ function renderFoldersList() {
     }); feather.replace();
 }
 function createNewFolder() { const name = document.getElementById('new-folder-name').value, color = document.getElementById('new-folder-color').value; if(name.trim()==="") return; folders.push({id:Date.now(), name, color}); localStorage.setItem('healthAppFolders', JSON.stringify(folders)); document.getElementById('new-folder-name').value = ""; renderFoldersList(); }
-function openFolder(id, name) { document.getElementById('folder-list-view').style.display='none'; document.getElementById('folder-content-view').style.display='block'; document.getElementById('current-folder-name').innerHTML = `<i data-feather='folder' style='width:20px;'></i> ${name}`; renderFolderItems(id); feather.replace(); }
+
+// --- ORDNER & FOTO LOGIK ---
+let currentOpenFolderId = null;
+
+function openFolder(id, name) { 
+    currentOpenFolderId = id; // Merkt sich den offenen Ordner
+    document.getElementById('folder-list-view').style.display='none'; 
+    document.getElementById('folder-content-view').style.display='block'; 
+    document.getElementById('current-folder-name').innerHTML = `<i data-feather='folder' style='width:20px;'></i> ${name}`; 
+    renderFolderItems(id); 
+    feather.replace(); 
+}
+
+function handlePhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    showToast("Bild wird komprimiert und gespeichert... ⏳");
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Intelligente Komprimierung (Max 800px Breite)
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // In stark komprimiertes JPEG umwandeln (Qualität 0.7)
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            
+            // Als neues Dokument speichern
+            const dStr = new Date().toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+            const title = prompt("Wie soll das Foto heißen?", "Befund vom " + dStr.split(',')[0]);
+            if(title === null) return; // Abbruch
+            
+            const content = `<img src="${compressedDataUrl}" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">`;
+            
+            savedNotes.push({id: Date.now(), title: title || "Neues Foto", content: content, folderId: currentOpenFolderId, date: dStr});
+            localStorage.setItem('healthAppNotes', JSON.stringify(savedNotes));
+            
+            document.getElementById('dash-doc-count').innerText = savedNotes.length;
+            renderFolderItems(currentOpenFolderId);
+            renderNotesList();
+            showToast("Befund erfolgreich gespeichert! 📸");
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 function closeFolder() { document.getElementById('folder-content-view').style.display='none'; document.getElementById('folder-list-view').style.display='block'; }
 function renderFolderItems(fId) {
     const cont = document.getElementById('folder-items-list'); cont.innerHTML = ""; const items = savedNotes.filter(n => n.folderId == fId);
