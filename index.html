@@ -286,6 +286,20 @@
                     <button class="action-btn outline" onclick="document.getElementById('import-file').click()"><i data-feather="upload"></i> Importieren</button>
                 </div>
             </div>
+                    <!-- NEU: PIN-Einstellungen -->
+            <div class="card" style="margin-top: 20px;">
+                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;"><i data-feather="lock" style="color: #00796b;"></i> App-Sperre (PIN)</h3>
+                <p style="font-size: 0.85rem; color: gray; margin-bottom: 15px;">Sichere deine Gesundheitsdaten mit einem 4-stelligen Code.</p>
+                <div id="pin-setup-area">
+                    <input type="password" inputmode="numeric" maxlength="4" id="new-pin-input" placeholder="0000" class="clean-input" style="width: 100px; text-align: center; letter-spacing: 5px; font-size: 1.2rem;">
+                    <button class="action-btn" onclick="saveNewPin()" style="margin-top: 10px;"><i data-feather="check"></i> PIN aktivieren</button>
+                </div>
+                <div id="pin-active-area" style="display: none;">
+                    <p style="color: #00796b; font-weight: bold;">PIN-Sperre ist aktiv! 🔒</p>
+                    <button class="action-btn outline" onclick="removePin()" style="margin-top: 10px; color: #e74c3c; border-color: #e74c3c;"><i data-feather="trash-2"></i> PIN entfernen</button>
+                </div>
+            </div>
+
     </main>
 
     <!-- Navigation (NEU: Termine Button hinzugefügt) -->
