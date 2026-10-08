@@ -331,6 +331,61 @@ function showToast(message) {
 
 
 
+// --- BACKUP SYSTEM (EXPORT / IMPORT) ---
+
+function exportData() {
+    // Sammelt alle Daten aus dem lokalen Speicher
+    const backup = {
+        profile: localStorage.getItem('healthAppProfile'),
+        folders: localStorage.getItem('healthAppFolders'),
+        doctors: localStorage.getItem('healthAppDocs'),
+        notes: localStorage.getItem('healthAppNotes'),
+        meds: localStorage.getItem('healthAppMeds'),
+        labs: localStorage.getItem('healthAppAllLabData'),
+        appts: localStorage.getItem('healthAppAppts'),
+        darkMode: localStorage.getItem('medspaceDarkMode')
+    };
+
+    // Erstellt eine JSON-Datei
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", "medspace_backup_" + new Date().toLocaleDateString('de-DE').replace(/\./g, '-') + ".json");
+    document.body.appendChild(downloadAnchorNode); // für Firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    
+    showToast("Backup erfolgreich heruntergeladen! 💾");
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const backup = JSON.parse(e.target.result);
+            
+            // Alte Daten überschreiben
+            if(backup.profile) localStorage.setItem('healthAppProfile', backup.profile);
+            if(backup.folders) localStorage.setItem('healthAppFolders', backup.folders);
+            if(backup.doctors) localStorage.setItem('healthAppDocs', backup.doctors);
+            if(backup.notes) localStorage.setItem('healthAppNotes', backup.notes);
+            if(backup.meds) localStorage.setItem('healthAppMeds', backup.meds);
+            if(backup.labs) localStorage.setItem('healthAppAllLabData', backup.labs);
+            if(backup.appts) localStorage.setItem('healthAppAppts', backup.appts);
+            if(backup.darkMode) localStorage.setItem('medspaceDarkMode', backup.darkMode);
+            
+            alert("Daten erfolgreich wiederhergestellt! Die App wird jetzt neu geladen.");
+            window.location.reload(); // App neu laden, um Daten anzuzeigen
+            
+        } catch (error) {
+            alert("Fehler beim Lesen der Datei. Ist es die richtige Backup-Datei?");
+        }
+    };
+    reader.readAsText(file);
+}
 
 
 
