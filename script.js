@@ -183,37 +183,130 @@ function renderLabTable() {
 function addLabValue() { const d = document.getElementById('lab-date').value, v = document.getElementById('lab-value').value; if(d==="" || v==="") return; labData[currentMarker].labels.push(d); labData[currentMarker].values.push(parseFloat(v)); localStorage.setItem('healthAppAllLabData', JSON.stringify(labData)); document.getElementById('lab-date').value = ""; document.getElementById('lab-value').value = ""; updateChartAndTable(); }
 function deleteLabValue(i) { labData[currentMarker].labels.splice(i, 1); labData[currentMarker].values.splice(i, 1); localStorage.setItem('healthAppAllLabData', JSON.stringify(labData)); updateChartAndTable(); }
 
-// --- SCANNER / OCR LOGIK ---
-function openScannerModal() { document.getElementById('scanner-modal').style.display = 'flex'; document.getElementById('scanner-step-1').style.display = 'block'; document.getElementById('scanner-step-2').style.display = 'none'; document.getElementById('scanner-step-3').style.display = 'none'; }
+// --- ECHTER SCANNER / OCR LOGIK (Tesseract.js) ---
+
+function openScannerModal() { 
+    document.getElementById('scanner-modal').style.display = 'flex'; 
+    document.getElementById('scanner-step-1').style.display = 'block'; 
+    document.getElementById('scanner-step-2').style.display = 'none'; 
+    document.getElementById('scanner-step-3').style.display = 'none'; 
+}
 function closeScannerModal() { document.getElementById('scanner-modal').style.display = 'none'; }
+
 function startFakeScan(type) {
-    const input = document.createElement('input'); input.type = 'file';
-    if (type === 'foto') { input.setAttribute('accept', 'image/*'); input.setAttribute('capture', 'environment'); } else { input.setAttribute('accept', 'application/pdf, image/*'); }
-    input.onchange = (e) => {
+    const input = document.createElement('input'); 
+    input.type = 'file';
+    if (type === 'foto') { input.setAttribute('accept', 'image/*'); input.setAttribute('capture', 'environment'); } 
+    else { input.setAttribute('accept', 'application/pdf, image/*'); }
+    
+    input.onchange = async (e) => {
         if(e.target.files.length > 0) {
-            document.getElementById('scanner-step-1').style.display = 'none'; document.getElementById('scanner-step-2').style.display = 'block';
-            setTimeout(() => { document.getElementById('scanner-step-2').style.display = 'none'; generateMockResults(); document.getElementById('scanner-step-3').style.display = 'block'; }, 2500);
+            const file = e.target.files[0];
+            document.getElementById('scanner-step-1').style.display = 'none'; 
+            document.getElementById('scanner-step-2').style.display = 'block';
+            document.getElementById('scan-status-text').innerText = "KI liest das Bild... (Das kann kurz dauern)";
+            
+            // Tesseract OCR starten
+            try {
+                const result = await Tesseract.recognize(file, 'deu'); // 'deu' für deutsche Texterkennung
+                const text = result.data.text;
+                processOCRText(text); // Text an unsere smarte Filter-Funktion übergeben
+            } catch (err) {
+                alert("Fehler beim Lesen des Bildes. Bitte nochmal versuchen.");
+                closeScannerModal();
+            }
         }
     };
     input.click();
 }
-function generateMockResults() {
-    const tbody = document.getElementById('scanner-results-body'); tbody.innerHTML = "";
-    const foundValues = [ { marker: "Hämoglobin (Hb)", value: 13.2, unit: "g/dl" }, { marker: "Leukozyten", value: 6.4, unit: "/nl" }, { marker: "CRP", value: 2.1, unit: "mg/l" }, { marker: "Kreatinin", value: 0.72, unit: "mg/dl" } ];
+
+// Das "Wörterbuch" (Aliase) und die Einheiten
+const labDictionary = {
+    "hämoglobin": { id: "Hämoglobin (Hb)", unit: "g/dl" },
+    "haemoglobin": { id: "Hämoglobin (Hb)", unit: "g/dl" },
+    "hb": { id: "Hämoglobin (Hb)", unit: "g/dl" },
+    "leukozyten": { id: "Leukozyten", unit: "/nl" },
+    "leukos": { id: "Leukozyten", unit: "/nl" },
+    "crp": { id: "CRP", unit: "mg/l" },
+    "kreatinin": { id: "Kreatinin", unit: "mg/dl" },
+    "krea": { id: "Kreatinin", unit: "mg/dl" },
+    "ferritin": { id: "Ferritin", unit: "µg/l" },
+    "tsh": { id: "TSH", unit: "mIU/l" }
+};
+
+let currentScannedValues = []; // Merkt sich die gefundenen Werte
+
+function processOCRText(text) {
+    currentScannedValues = [];
+    const lines = text.toLowerCase().split('\n');
+    
+    // Wir suchen in jeder Zeile nach unseren Wörtern
+    lines.forEach(line => {
+        for (let key in labDictionary) {
+            // Wenn das Wort in der Zeile gefunden wurde (z.B. "krea")
+            if (line.includes(key)) {
+                // Wir suchen die erste Zahl in dieser Zeile (auch mit Komma)
+                const numberMatch = line.match(/\d+[\,\.]?\d*/);
+                if (numberMatch) {
+                    let numberVal = numberMatch[0].replace(',', '.'); // Komma zu Punkt für JS
+                    
+                    // Prüfen ob wir den Wert nicht schon haben (vermeidet doppelte)
+                    if(!currentScannedValues.find(v => v.marker === labDictionary[key].id)) {
+                        currentScannedValues.push({ 
+                            marker: labDictionary[key].id, 
+                            value: numberVal, 
+                            unit: labDictionary[key].unit 
+                        });
+                    }
+                }
+            }
+        }
+    });
+    
+    // Zeige das Ergebnis im Popup an
+    document.getElementById('scanner-step-2').style.display = 'none';
+    generateMockResults(currentScannedValues);
+    document.getElementById('scanner-step-3').style.display = 'block';
+}
+
+function generateMockResults(foundValues) {
+    const tbody = document.getElementById('scanner-results-body'); 
+    tbody.innerHTML = "";
+    
+    if(foundValues.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:gray;'>Keine bekannten Werte gefunden.</td></tr>";
+        return;
+    }
+    
     foundValues.forEach((item, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td style="text-align:center;"><input type="checkbox" id="scan-check-${index}" checked style="width:18px; height:18px; accent-color:#00796b;"></td><td style="font-weight:bold;">${item.marker}</td><td><input type="number" id="scan-val-${index}" value="${item.value}" step="0.1" class="clean-input" style="margin:0; padding:5px 0; width:60px;"> ${item.unit}</td>`;
         tbody.appendChild(tr);
     });
 }
+
 function importScannedValues() {
     const today = new Date().toLocaleDateString('de-DE', {day:'2-digit', month:'short'});
-    const foundValues = ["Hämoglobin (Hb)", "Leukozyten", "CRP", "Kreatinin"];
-    foundValues.forEach((marker, index) => {
-        if(document.getElementById(`scan-check-${index}`).checked) {
+    
+    currentScannedValues.forEach((item, index) => {
+        const checkbox = document.getElementById(`scan-check-${index}`);
+        if(checkbox && checkbox.checked) {
             const finalValue = document.getElementById(`scan-val-${index}`).value;
-            if(labData[marker]) { labData[marker].labels.push(today); labData[marker].values.push(parseFloat(finalValue)); }
+            if(labData[item.marker]) { 
+                labData[item.marker].labels.push(today); 
+                labData[item.marker].values.push(parseFloat(finalValue)); 
+            }
         }
     });
-    localStorage.setItem('healthAppAllLabData', JSON.stringify(labData)); updateChartAndTable(); closeScannerModal(); alert("Werte erfolgreich importiert!");
+    localStorage.setItem('healthAppAllLabData', JSON.stringify(labData)); 
+    updateChartAndTable(); 
+    closeScannerModal(); 
+    alert("Werte erfolgreich importiert!");
 }
+
+
+
+
+
+
+
