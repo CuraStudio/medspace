@@ -237,6 +237,7 @@ const labDictionary = {
 let currentScannedValues = []; 
 
 // NEU: Die intelligente, robuste Suche!
+// NEU: Die intelligente Suche MIT Diagnose-Anzeige (Was hat die KI gelesen?)
 function processOCRText(text) {
     currentScannedValues = [];
     const lowerText = text.toLowerCase();
@@ -244,9 +245,7 @@ function processOCRText(text) {
     for (let key in labDictionary) {
         const index = lowerText.indexOf(key);
         if (index !== -1) {
-            // Wir schneiden den Text ab dem gefundenen Wort (z.B. "krea") ab...
             const textAfterKeyword = lowerText.substring(index, index + 35);
-            // ...und suchen die allererste Zahl, die danach kommt!
             const numberMatch = textAfterKeyword.match(/\d+[\,\.]?\d*/);
             
             if (numberMatch) {
@@ -264,29 +263,43 @@ function processOCRText(text) {
     }
     
     document.getElementById('scanner-step-2').style.display = 'none';
-    generateMockResults(currentScannedValues);
+    generateMockResults(currentScannedValues, text); // Wir übergeben den Rohtext!
     document.getElementById('scanner-step-3').style.display = 'block';
 }
 
-function generateMockResults(foundValues) {
+function generateMockResults(foundValues, rawText) {
     const tbody = document.getElementById('scanner-results-body'); 
     tbody.innerHTML = "";
     
-    if(foundValues.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:gray;'>Keine bekannten Werte gefunden. Versuche das Foto näher/schärfer aufzunehmen.</td></tr>";
-        return;
-    }
-    
     // Die Info oben drüber anpassen
     const infoText = document.querySelector('#scanner-step-3 p');
-    if(infoText) infoText.innerText = `Wir haben ${foundValues.length} Wert(e) gefunden. Bitte überprüfe die Angaben.`;
+    if(infoText) {
+        if(foundValues.length === 0) {
+            infoText.innerText = "Keine bekannten Werte gefunden. Schau dir unten an, was die KI gelesen hat:";
+            infoText.style.color = "#e74c3c"; // Rot bei Fehler
+        } else {
+            infoText.innerText = `Wir haben ${foundValues.length} Wert(e) gefunden. Bitte überprüfe die Angaben.`;
+            infoText.style.color = "#00796b"; // Grün bei Erfolg
+        }
+    }
     
     foundValues.forEach((item, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td style="text-align:center;"><input type="checkbox" id="scan-check-${index}" checked style="width:18px; height:18px; accent-color:#00796b;"></td><td style="font-weight:bold;">${item.marker}</td><td><input type="number" id="scan-val-${index}" value="${item.value}" step="0.1" class="clean-input" style="margin:0; padding:5px 0; width:60px;"> ${item.unit}</td>`;
         tbody.appendChild(tr);
     });
+
+    // --- NEU: KI-Rohtext anzeigen ---
+    let debugBox = document.getElementById('ocr-debug-box');
+    if(!debugBox) {
+        debugBox = document.createElement('div');
+        debugBox.id = 'ocr-debug-box';
+        debugBox.style.cssText = 'margin-top:20px; font-size:0.75rem; color:gray; max-height:100px; overflow-y:auto; border:1px solid #ddd; padding:8px; border-radius:6px; background:#f9f9f9;';
+        document.getElementById('scanner-step-3').appendChild(debugBox);
+    }
+    debugBox.innerHTML = `<strong>Rohtext der KI:</strong><br><pre style="white-space: pre-wrap; word-wrap: break-word; font-family: monospace;">${rawText}</pre>`;
 }
+
 
 function importScannedValues() {
     const today = new Date().toLocaleDateString('de-DE', {day:'2-digit', month:'short'});
