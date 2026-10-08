@@ -183,6 +183,7 @@ function renderLabTable() {
 function addLabValue() { const d = document.getElementById('lab-date').value, v = document.getElementById('lab-value').value; if(d==="" || v==="") return; labData[currentMarker].labels.push(d); labData[currentMarker].values.push(parseFloat(v)); localStorage.setItem('healthAppAllLabData', JSON.stringify(labData)); document.getElementById('lab-date').value = ""; document.getElementById('lab-value').value = ""; updateChartAndTable(); }
 function deleteLabValue(i) { labData[currentMarker].labels.splice(i, 1); labData[currentMarker].values.splice(i, 1); localStorage.setItem('healthAppAllLabData', JSON.stringify(labData)); updateChartAndTable(); }
 
+
 // --- ECHTER SCANNER / OCR LOGIK (Tesseract.js) ---
 
 function openScannerModal() { 
@@ -206,11 +207,10 @@ function startFakeScan(type) {
             document.getElementById('scanner-step-2').style.display = 'block';
             document.getElementById('scan-status-text').innerText = "KI liest das Bild... (Das kann kurz dauern)";
             
-            // Tesseract OCR starten
             try {
-                const result = await Tesseract.recognize(file, 'deu'); // 'deu' für deutsche Texterkennung
+                const result = await Tesseract.recognize(file, 'deu');
                 const text = result.data.text;
-                processOCRText(text); // Text an unsere smarte Filter-Funktion übergeben
+                processOCRText(text); 
             } catch (err) {
                 alert("Fehler beim Lesen des Bildes. Bitte nochmal versuchen.");
                 closeScannerModal();
@@ -220,7 +220,7 @@ function startFakeScan(type) {
     input.click();
 }
 
-// Das "Wörterbuch" (Aliase) und die Einheiten
+// Das Wörterbuch (Aliase)
 const labDictionary = {
     "hämoglobin": { id: "Hämoglobin (Hb)", unit: "g/dl" },
     "haemoglobin": { id: "Hämoglobin (Hb)", unit: "g/dl" },
@@ -234,36 +234,35 @@ const labDictionary = {
     "tsh": { id: "TSH", unit: "mIU/l" }
 };
 
-let currentScannedValues = []; // Merkt sich die gefundenen Werte
+let currentScannedValues = []; 
 
+// NEU: Die intelligente, robuste Suche!
 function processOCRText(text) {
     currentScannedValues = [];
-    const lines = text.toLowerCase().split('\n');
+    const lowerText = text.toLowerCase();
     
-    // Wir suchen in jeder Zeile nach unseren Wörtern
-    lines.forEach(line => {
-        for (let key in labDictionary) {
-            // Wenn das Wort in der Zeile gefunden wurde (z.B. "krea")
-            if (line.includes(key)) {
-                // Wir suchen die erste Zahl in dieser Zeile (auch mit Komma)
-                const numberMatch = line.match(/\d+[\,\.]?\d*/);
-                if (numberMatch) {
-                    let numberVal = numberMatch[0].replace(',', '.'); // Komma zu Punkt für JS
-                    
-                    // Prüfen ob wir den Wert nicht schon haben (vermeidet doppelte)
-                    if(!currentScannedValues.find(v => v.marker === labDictionary[key].id)) {
-                        currentScannedValues.push({ 
-                            marker: labDictionary[key].id, 
-                            value: numberVal, 
-                            unit: labDictionary[key].unit 
-                        });
-                    }
+    for (let key in labDictionary) {
+        const index = lowerText.indexOf(key);
+        if (index !== -1) {
+            // Wir schneiden den Text ab dem gefundenen Wort (z.B. "krea") ab...
+            const textAfterKeyword = lowerText.substring(index, index + 35);
+            // ...und suchen die allererste Zahl, die danach kommt!
+            const numberMatch = textAfterKeyword.match(/\d+[\,\.]?\d*/);
+            
+            if (numberMatch) {
+                let numberVal = numberMatch[0].replace(',', '.'); 
+                
+                if(!currentScannedValues.find(v => v.marker === labDictionary[key].id)) {
+                    currentScannedValues.push({ 
+                        marker: labDictionary[key].id, 
+                        value: numberVal, 
+                        unit: labDictionary[key].unit 
+                    });
                 }
             }
         }
-    });
+    }
     
-    // Zeige das Ergebnis im Popup an
     document.getElementById('scanner-step-2').style.display = 'none';
     generateMockResults(currentScannedValues);
     document.getElementById('scanner-step-3').style.display = 'block';
@@ -274,9 +273,13 @@ function generateMockResults(foundValues) {
     tbody.innerHTML = "";
     
     if(foundValues.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:gray;'>Keine bekannten Werte gefunden.</td></tr>";
+        tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:gray;'>Keine bekannten Werte gefunden. Versuche das Foto näher/schärfer aufzunehmen.</td></tr>";
         return;
     }
+    
+    // Die Info oben drüber anpassen
+    const infoText = document.querySelector('#scanner-step-3 p');
+    if(infoText) infoText.innerText = `Wir haben ${foundValues.length} Wert(e) gefunden. Bitte überprüfe die Angaben.`;
     
     foundValues.forEach((item, index) => {
         const tr = document.createElement('tr');
@@ -301,27 +304,20 @@ function importScannedValues() {
     localStorage.setItem('healthAppAllLabData', JSON.stringify(labData)); 
     updateChartAndTable(); 
     closeScannerModal(); 
-    
-    // Die neue, schicke Benachrichtigung statt dem hässlichen Alert
     showToast("Werte erfolgreich importiert! ✅");
 }
 
-// --- NEU: Moderne Benachrichtigung (Toast) ---
 function showToast(message) {
     const toast = document.createElement('div');
     toast.innerText = message;
     toast.style.cssText = "position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#00796b; color:white; padding:12px 24px; border-radius:30px; box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:9999; font-size:0.9rem; font-weight:bold; opacity:0; transition:opacity 0.3s ease-in-out;";
     document.body.appendChild(toast);
-    
-    // Einblenden
     setTimeout(() => toast.style.opacity = '1', 10);
-    
-    // Nach 3 Sekunden ausblenden und löschen
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
+
+
+
 
 
 
