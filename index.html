@@ -148,11 +148,17 @@
                     <button class="action-btn outline" onclick="createNewFolder()"><i data-feather="folder-plus"></i> Ordner anlegen</button>
                 </div>
             </div>
-            <div id="folder-content-view" style="display: none;">
-                <button class="action-btn outline" onclick="closeFolder()" style="margin-bottom: 15px;"><i data-feather="arrow-left"></i> Zurück zur Übersicht</button>
+                        <div id="folder-content-view" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <button class="action-btn outline" onclick="closeFolder()" style="width: auto; padding: 8px 15px;"><i data-feather="arrow-left"></i> Zurück</button>
+                    <!-- NEU: Foto Upload Button -->
+                    <input type="file" id="folder-photo-upload" accept="image/*" capture="environment" style="display: none;" onchange="handlePhotoUpload(event)">
+                    <button class="action-btn" onclick="document.getElementById('folder-photo-upload').click()" style="width: auto; padding: 8px 15px;"><i data-feather="camera"></i> Foto / Befund</button>
+                </div>
                 <h3 id="current-folder-name" style="display: flex; align-items: center; gap: 10px;">Ordnername</h3>
                 <div class="card"><div id="folder-items-list"></div></div>
             </div>
+
         </section>
 
         <!-- Laborwerte -->
