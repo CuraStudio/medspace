@@ -388,6 +388,58 @@ function importData(event) {
 }
 
 
+// --- PIN SPERRE LOGIK ---
+setTimeout(() => {
+    const hasPin = localStorage.getItem('medspacePin');
+    if(hasPin) { document.getElementById('pin-lock-screen').style.display = 'flex'; }
+    updatePinUI();
+}, 100);
+
+function checkPinInput() {
+    const val = document.getElementById('pin-input').value;
+    const appPin = localStorage.getItem('medspacePin');
+    if(val.length === 4) {
+        if(val === appPin) {
+            document.getElementById('pin-lock-screen').style.display = 'none';
+            document.getElementById('pin-input').value = '';
+            document.getElementById('pin-error').style.display = 'none';
+        } else {
+            document.getElementById('pin-error').style.display = 'block';
+            document.getElementById('pin-input').value = '';
+            setTimeout(() => document.getElementById('pin-error').style.display = 'none', 2000);
+        }
+    }
+}
+
+function updatePinUI() {
+    const hasPin = localStorage.getItem('medspacePin');
+    const setupArea = document.getElementById('pin-setup-area');
+    const activeArea = document.getElementById('pin-active-area');
+    if(setupArea && activeArea) {
+        if(hasPin) { setupArea.style.display = 'none'; activeArea.style.display = 'block'; } 
+        else { setupArea.style.display = 'block'; activeArea.style.display = 'none'; }
+    }
+}
+
+function saveNewPin() {
+    const val = document.getElementById('new-pin-input').value;
+    if(val.length === 4 && !isNaN(val)) {
+        localStorage.setItem('medspacePin', val);
+        updatePinUI();
+        document.getElementById('new-pin-input').value = '';
+        showToast("PIN-Sperre aktiviert! 🔒");
+    } else {
+        showToast("Bitte genau 4 Zahlen eingeben! ❌");
+    }
+}
+
+function removePin() {
+    if(confirm("Möchtest du die PIN-Sperre wirklich entfernen?")) {
+        localStorage.removeItem('medspacePin');
+        updatePinUI();
+        showToast("PIN-Sperre entfernt! 🔓");
+    }
+}
 
 
 
