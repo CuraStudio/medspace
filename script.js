@@ -301,7 +301,26 @@ function importScannedValues() {
     localStorage.setItem('healthAppAllLabData', JSON.stringify(labData)); 
     updateChartAndTable(); 
     closeScannerModal(); 
-    alert("Werte erfolgreich importiert!");
+    
+    // Die neue, schicke Benachrichtigung statt dem hässlichen Alert
+    showToast("Werte erfolgreich importiert! ✅");
+}
+
+// --- NEU: Moderne Benachrichtigung (Toast) ---
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.innerText = message;
+    toast.style.cssText = "position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#00796b; color:white; padding:12px 24px; border-radius:30px; box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:9999; font-size:0.9rem; font-weight:bold; opacity:0; transition:opacity 0.3s ease-in-out;";
+    document.body.appendChild(toast);
+    
+    // Einblenden
+    setTimeout(() => toast.style.opacity = '1', 10);
+    
+    // Nach 3 Sekunden ausblenden und löschen
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 
