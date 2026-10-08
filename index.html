@@ -266,6 +266,17 @@
                 <button class="action-btn" onclick="saveProfile()"><i data-feather="check"></i> Profil speichern</button>
             </div>
         </section>
+                    <!-- NEU: Backup System -->
+            <div class="card" style="margin-top: 20px;">
+                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;"><i data-feather="database" style="color: #00796b;"></i> Daten-Backup</h3>
+                <p style="font-size: 0.85rem; color: gray; margin-bottom: 15px;">Sichere deine Daten als Datei, um sie auf ein anderes Gerät zu übertragen.</p>
+                <div style="display: flex; gap: 10px;">
+                    <button class="action-btn" onclick="exportData()"><i data-feather="download"></i> Exportieren</button>
+                    <!-- Unsichtbares Feld für den Import -->
+                    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(event)">
+                    <button class="action-btn outline" onclick="document.getElementById('import-file').click()"><i data-feather="upload"></i> Importieren</button>
+                </div>
+            </div>
     </main>
 
     <!-- Navigation (NEU: Termine Button hinzugefügt) -->
