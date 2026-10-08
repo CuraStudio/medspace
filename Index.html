@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>medspace</title>
+    
+    <!-- PWA Verknüpfung -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#00796b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="stylesheet" href="./style.css?v=18">
+    
+    <!-- Bibliotheken -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+    <!-- medspace Ordner-Animation -->
+    <div id="splash-screen">
+        <div class="anim-container">
+            <i data-feather="file-text" class="anim-file"></i>
+            <i data-feather="folder" class="anim-folder"></i>
+        </div>
+        <h1 class="splash-title">medspace</h1>
+    </div>
+
+    <header>
+        <span style="letter-spacing: 0.1em; font-weight: 400;">medspace</span>
+        <button class="icon-btn" onclick="showPage('profil', null)">
+            <i data-feather="user"></i>
+        </button>
+    </header>
+
+    <main>
+        <!-- Dashboard -->
+        <section id="dashboard" class="page-section active">
+            <h2>Übersicht</h2>
+            <div class="card" style="border-top: 4px solid #00796b;">
+                <h3 id="dashboard-welcome">Willkommen zurück!</h3>
+                <p>Verwalte deine Gesundheitsdaten und Dokumente zentral an einem Ort.</p>
+                <div id="dashboard-profile-hint">
+                    <br><button class="action-btn" onclick="showPage('profil', null)"><i data-feather="user"></i> Profil vervollständigen</button>
+                </div>
+            </div>
+            
+            <!-- NEU: Nächste Termine auf dem Dashboard -->
+            <div class="card">
+                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;"><i data-feather="calendar" style="color: #00796b;"></i> Nächste Termine</h3>
+                <div id="dash-appointments-list">
+                    <p style="color:gray; font-size:0.9rem;">Keine anstehenden Termine.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <p><i data-feather="file-text" class="inline-icon"></i> Dokumente gesamt: <span id="dash-doc-count">0</span></p>
+                <p><i data-feather="users" class="inline-icon"></i> Gespeicherte Ärzte: <span id="dash-doc-doc-count">0</span></p>
+            </div>
+        </section>
+
+        <!-- NEU: Termine Registerkarte -->
+        <section id="termine" class="page-section">
+            <h2>Termine & To-Dos</h2>
+            <div class="card">
+                <h3>Neuen Termin eintragen</h3>
+                <input type="datetime-local" id="appt-date" class="clean-input" style="margin-bottom: 10px;">
+                
+                <div style="padding: 10px; background: #f9f9f9; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd;" class="editor-header">
+                    <label style="font-size: 0.8rem; color: gray; display: block;">Arzt auswählen:</label>
+                    <select id="appt-doctor-select" style="width: 100%; border: none; background: transparent; padding: 5px 0; font-weight: bold; outline: none; color: #00796b;">
+                        <!-- Wird vom JS gefüllt -->
+                    </select>
+                </div>
+                
+                <textarea id="appt-notes" placeholder="Notizen (z.B. Überweisung mitbringen, warte auf Rückruf...)" rows="3" class="clean-input" style="width:100%"></textarea>
+                <button class="action-btn" onclick="addAppointment()"><i data-feather="plus"></i> Termin speichern</button>
+            </div>
+            <div class="card">
+                <h3 style="margin-top: 0;">Alle Termine</h3>
+                <div id="appointments-list"></div>
+            </div>
+        </section>
+
+        <!-- Medikationsplan -->
+        <section id="medikation" class="page-section">
+            <h2>Medikationsplan</h2>
+            <div class="card">
+                <h3>Neues Medikament eintragen</h3>
+                <input type="text" id="med-name" placeholder="Medikament (z.B. Ibuprofen)" class="clean-input">
+                <input type="text" id="med-schema" placeholder="Schema (z.B. 1-0-1-0)" class="clean-input">
+                <input type="text" id="med-hinweis" placeholder="Hinweise (z.B. nach dem Essen)" class="clean-input">
+                <button class="action-btn" onclick="addMedication()"><i data-feather="plus"></i> Hinzufügen</button>
+            </div>
+            <div class="card" style="overflow-x: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">Aktuelle Tabelle</h3>
+                    <button class="action-btn outline" style="width: auto; padding: 8px 12px; font-size: 0.85rem;" onclick="exportMedPlanPDF()"><i data-feather="download"></i> PDF</button>
+                </div>
+                <div id="med-pdf-area" style="background: white; padding: 10px;">
+                    <h2 style="display: none; color: #00796b; border-bottom: 2px solid #00796b; padding-bottom: 10px;" id="pdf-title">Mein Medikationsplan</h2>
+                    <table class="colored-table">
+                        <thead><tr><th>Medikament</th><th>Schema</th><th>Hinweise</th><th style="width:40px;" class="no-print"></th></tr></thead>
+                        <tbody id="med-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dokumente (Akte) -->
+        <section id="dokumente" class="page-section">
+            <h2>Dokumente</h2>
+            <div id="folder-list-view">
+                <div class="folder-grid" id="folder-container"></div>
+                <div class="card" style="margin-top: 20px;">
+                    <h3 style="margin-top: 0;">Neuen Ordner erstellen</h3>
+                    <input type="text" id="new-folder-name" placeholder="Ordnername" class="clean-input" style="margin-bottom: 15px;">
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-size: 0.9rem; color: gray; display: block; margin-bottom: 10px;">Ordner-Farbe:</label>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <div class="color-circle selected" style="background-color: #00796b;" onclick="selectColor(this, '#00796b')"></div>
+                            <div class="color-circle" style="background-color: #e74c3c;" onclick="selectColor(this, '#e74c3c')"></div>
+                            <div class="color-circle" style="background-color: #3498db;" onclick="selectColor(this, '#3498db')"></div>
+                            <div class="color-circle" style="background-color: #f39c12;" onclick="selectColor(this, '#f39c12')"></div>
+                            <div class="color-circle" style="background-color: #9b59b6;" onclick="selectColor(this, '#9b59b6')"></div>
+                            <div style="display: flex; align-items: center; gap: 5px; margin-left: auto; border: 1px solid #ddd; padding: 2px 8px; border-radius: 20px;">
+                                <span style="color: gray; font-weight: bold;">#</span>
+                                <input type="text" id="hex-color-input" value="00796b" oninput="updateHexColor(this.value)" style="border: none; outline: none; width: 55px; font-family: monospace; font-size: 0.9rem; background: transparent;">
+                                <input type="color" id="new-folder-color" value="#00796b" onchange="updateHexColor(this.value.substring(1))" title="Farbrad öffnen">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="action-btn outline" onclick="createNewFolder()"><i data-feather="folder-plus"></i> Ordner anlegen</button>
+                </div>
+            </div>
+            <div id="folder-content-view" style="display: none;">
+                <button class="action-btn outline" onclick="closeFolder()" style="margin-bottom: 15px;"><i data-feather="arrow-left"></i> Zurück zur Übersicht</button>
+                <h3 id="current-folder-name" style="display: flex; align-items: center; gap: 10px;">Ordnername</h3>
+                <div class="card"><div id="folder-items-list"></div></div>
+            </div>
+        </section>
+
+        <!-- Laborwerte -->
+        <section id="laborwerte" class="page-section">
+            <h2>Laborwerte</h2>
+            
+            <button class="action-btn" onclick="openScannerModal()" style="margin-bottom: 20px; background-color: #34495e;">
+                <i data-feather="camera"></i> Befund scannen (Foto / PDF)
+            </button>
+
+            <!-- Scanner Modal -->
+            <div id="scanner-modal" class="modal-overlay" style="display: none;">
+                <div class="modal-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">Labor-Import</h3>
+                        <button onclick="closeScannerModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color);">&times;</button>
+                    </div>
+                    <div id="scanner-step-1">
+                        <p style="color: gray; font-size: 0.9rem;">Wie möchtest du den Befund importieren?</p>
+                        <button class="action-btn outline" onclick="startFakeScan('foto')" style="margin-bottom: 10px;"><i data-feather="camera"></i> Foto aufnehmen</button>
+                        <button class="action-btn outline" onclick="startFakeScan('pdf')"><i data-feather="file-text"></i> PDF importieren</button>
+                    </div>
+                    <div id="scanner-step-2" style="display: none; text-align: center; padding: 20px 0;">
+                        <i data-feather="loader" class="spin-icon" style="width: 40px; height: 40px; color: #00796b;"></i>
+                        <p style="margin-top: 15px; font-weight: bold;" id="scan-status-text">Analysiere Befund...</p>
+                        <p style="color: gray; font-size: 0.8rem;">Texterkennung (OCR) läuft</p>
+                    </div>
+                    <div id="scanner-step-3" style="display: none;">
+                        <p style="color: #00796b; font-weight: bold;">Wir haben 4 Werte gefunden. Bitte überprüfe die Angaben.</p>
+                        <table class="colored-table" style="margin-bottom: 15px;">
+                            <thead><tr><th>Übernehmen</th><th>Wert</th><th>Erkannt</th></tr></thead>
+                            <tbody id="scanner-results-body"></tbody>
+                        </table>
+                        <button class="action-btn" onclick="importScannedValues()"><i data-feather="check"></i> Werte in Kurve übernehmen</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="margin-bottom: 15px;">
+                    <h3 style="margin: 0 0 10px 0;">Verlauf</h3>
+                    <select id="lab-marker-select" class="clean-input" style="width: 100%; margin-bottom: 0; padding: 10px 5px; font-weight: bold; color: #00796b;" onchange="switchMarker()"></select>
+                </div>
+                <canvas id="labChart"></canvas>
+            </div>
+            <div class="card">
+                <h3 id="input-title">Neuen Wert eintragen</h3>
+                <input type="text" id="lab-date" placeholder="Datum (z.B. Jul 26)" class="clean-input">
+                <input type="number" id="lab-value" placeholder="Wert" class="clean-input" step="0.1">
+                <button class="action-btn" onclick="addLabValue()"><i data-feather="plus"></i> Speichern</button>
+            </div>
+            <div class="card" style="overflow-x: auto;">
+                <h3 id="table-title">Tabelle</h3>
+                <table class="colored-table">
+                    <thead><tr><th>Datum</th><th>Wert</th><th style="width: 40px;"></th></tr></thead>
+                    <tbody id="lab-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Briefe & Notizen -->
+        <section id="editor" class="page-section">
+            <h2>Briefe & Notizen</h2>
+            <div id="notes-list-view">
+                <button class="action-btn" onclick="createNewNote()" style="margin-bottom: 20px;"><i data-feather="edit-2"></i> Neues Dokument erstellen</button>
+                <div class="card"><h3 style="margin-top: 0;">Alle Dokumente</h3><div id="saved-notes-container"></div></div>
+            </div>
+            <div id="editor-view" style="display: none;">
+                <button class="action-btn outline" onclick="closeEditor()" style="margin-bottom: 15px;"><i data-feather="arrow-left"></i> Zurück</button>
+                <div class="card" style="padding: 0; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                    <input type="hidden" id="current-note-id">
+                    <div style="padding: 10px 15px; background: #f9f9f9; border-bottom: 1px solid #ddd;" class="editor-header">
+                        <label style="font-size: 0.8rem; color: gray;">Speichern in Ordner:</label>
+                        <select id="note-folder-select" style="width: 100%; border: none; background: transparent; padding: 5px 0; font-weight: bold; outline: none;"></select>
+                    </div>
+                    <input type="text" id="note-title" placeholder="Titel des Dokuments..." class="clean-input" style="padding: 15px; margin: 0; border-bottom: 1px solid #ddd;">
+                    <div id="quill-editor" style="height: 350px; border: none;"></div>
+                </div>
+                <button class="action-btn" onclick="saveNote()" style="margin-top: 15px;"><i data-feather="save"></i> Speichern</button>
+            </div>
+        </section>
+
+        <!-- Ärzte Registerkarte -->
+        <section id="aerzte" class="page-section">
+            <h2>Meine Ärzte</h2>
+            <div class="card">
+                <h3>Neuen Arzt eintragen</h3>
+                <input type="text" id="doc-name" placeholder="Name (z.B. Dr. Schmidt)" class="clean-input" style="margin-bottom: 5px;">
+                <input type="text" id="doc-fach" placeholder="Fachrichtung" class="clean-input" style="margin-bottom: 5px;">
+                <input type="text" id="doc-tel" placeholder="Telefonnummer" class="clean-input" style="margin-bottom: 15px;">
+                <div style="padding: 10px; background: #f9f9f9; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd;" class="editor-header">
+                    <label style="font-size: 0.8rem; color: gray; display: block;">Verknüpfe diesen Arzt mit einem Akten-Ordner:</label>
+                    <select id="doc-folder-link" style="width: 100%; border: none; background: transparent; padding: 5px 0; font-weight: bold; outline: none; color: #00796b;"></select>
+                </div>
+                <button class="action-btn" onclick="addDoctor()"><i data-feather="user-plus"></i> Arzt speichern</button>
+            </div>
+            <div class="card"><h3>Gespeicherte Ärzte</h3><div id="doctors-list"></div></div>
+        </section>
+
+        <!-- Profil -->
+        <section id="profil" class="page-section">
+            <h2>Mein Profil</h2>
+            <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0;">Erscheinungsbild</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.8rem; color: gray;">Dark Mode (Nachtmodus)</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="card">
+                <h3>Meine Daten</h3>
+                <input type="text" id="profil-name" placeholder="Vor- und Nachname" class="clean-input">
+                <label style="font-size: 0.8rem; color: gray;">Geburtsdatum</label>
+                <input type="date" id="profil-geburt" class="clean-input">
+                <textarea id="profil-diagnosen" placeholder="Chronische Diagnosen..." rows="3" class="clean-input" style="width:100%"></textarea>
+                <input type="text" id="profil-notfall" placeholder="Notfallkontakt (Name & Nummer)" class="clean-input">
+                <button class="action-btn" onclick="saveProfile()"><i data-feather="check"></i> Profil speichern</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Navigation (NEU: Termine Button hinzugefügt) -->
+    <nav>
+        <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard', this)"><i data-feather="home"></i><span>Start</span></button>
+        <button class="nav-btn" onclick="showPage('termine', this)"><i data-feather="calendar"></i><span>Termine</span></button>
+        <button class="nav-btn" onclick="showPage('medikation', this)"><i data-feather="list"></i><span>Medis</span></button>
+        <button class="nav-btn" id="nav-dokumente" onclick="showPage('dokumente', this)"><i data-feather="folder"></i><span>Akte</span></button>
+        <button class="nav-btn" onclick="showPage('laborwerte', this)"><i data-feather="activity"></i><span>Labor</span></button>
+        <button class="nav-btn" onclick="showPage('editor', this)"><i data-feather="edit-3"></i><span>Briefe</span></button>
+        <button class="nav-btn" onclick="showPage('aerzte', this)"><i data-feather="users"></i><span>Ärzte</span></button>
+    </nav>
+
+    <script src="./script.js?v=18"></script>
+</body>
+</html>
