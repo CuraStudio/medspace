@@ -33,7 +33,7 @@ function showPage(id, btn) {
 
 function checkDarkMode() { const s = localStorage.getItem('medspaceDarkMode'); if(s === 'true') { document.body.classList.add('dark-mode'); document.getElementById('dark-mode-toggle').checked = true; darkMode = true; } }
 function toggleDarkMode() { darkMode = !darkMode; if(darkMode) { document.body.classList.add('dark-mode'); localStorage.setItem('medspaceDarkMode', 'true'); } else { document.body.classList.remove('dark-mode'); localStorage.setItem('medspaceDarkMode', 'false'); } }
-function saveProfile() { const d = { name: document.getElementById('profil-name').value, geburt: document.getElementById('profil-geburt').value, diagnosen: document.getElementById('profil-diagnosen').value, notfall: document.getElementById('profil-notfall').value }; localStorage.setItem('healthAppProfile', JSON.stringify(d)); alert("Gespeichert!"); loadProfile(); }
+function saveProfile() { const d = { name: document.getElementById('profil-name').value, geburt: document.getElementById('profil-geburt').value, diagnosen: document.getElementById('profil-diagnosen').value, notfall: document.getElementById('profil-notfall').value }; localStorage.setItem('healthAppProfile', JSON.stringify(d)); loadProfile(); showToast("Profil erfolgreich gespeichert! ✅"); }
 function loadProfile() { const s = localStorage.getItem('healthAppProfile'); if (s) { const d = JSON.parse(s); document.getElementById('profil-name').value = d.name||""; document.getElementById('profil-geburt').value = d.geburt||""; document.getElementById('profil-diagnosen').value = d.diagnosen||""; document.getElementById('profil-notfall').value = d.notfall||""; if (d.name && d.name.trim()!=="") { document.getElementById('dashboard-welcome').innerText = "Hallo "+d.name.split(" ")[0]+"!"; document.getElementById('dashboard-profile-hint').style.display='none'; } } }
 
 // --- TERMINE (NEU) ---
@@ -212,7 +212,7 @@ function startFakeScan(type) {
                 const text = result.data.text;
                 processOCRText(text); 
             } catch (err) {
-                alert("Fehler beim Lesen des Bildes. Bitte nochmal versuchen.");
+                showToast("Fehler beim Lesen des Bildes. Bitte nochmal versuchen.");
                 closeScannerModal();
             }
         }
@@ -386,6 +386,8 @@ function importData(event) {
     };
     reader.readAsText(file);
 }
+
+
 
 
 
