@@ -502,6 +502,56 @@ function removePin() {
     }
 }
 
+// --- SUCHFUNKTION FÜR DOKUMENTE ---
+function searchDocuments() {
+    const query = document.getElementById('doc-search-input').value.toLowerCase();
+    const resultsView = document.getElementById('search-results-view');
+    const folderView = document.getElementById('folder-list-view');
+    const folderContent = document.getElementById('folder-content-view');
+
+    // Wenn Suchfeld leer ist, zeige wieder die normalen Ordner
+    if (query.trim() === "") {
+        resultsView.style.display = 'none';
+        folderView.style.display = 'block';
+        folderContent.style.display = 'none';
+        return;
+    }
+
+    // Suchmodus aktivieren (Ordner verstecken)
+    resultsView.style.display = 'block';
+    folderView.style.display = 'none';
+    folderContent.style.display = 'none';
+    resultsView.innerHTML = "<h3 style='margin-top:0;'>Suchergebnisse</h3>";
+
+    // Durchsuche Titel und den Inhalt (content) aller Dokumente/Fotos
+    const matches = savedNotes.filter(n => 
+        n.title.toLowerCase().includes(query) || 
+        n.content.toLowerCase().includes(query)
+    );
+
+    if (matches.length === 0) {
+        resultsView.innerHTML += "<p style='color:gray; font-size:0.9rem;'>Keine Dokumente gefunden.</p>";
+        return;
+    }
+
+    // Ergebnisse als klickbare Liste anzeigen
+    matches.forEach(n => {
+        const div = document.createElement('div');
+        div.style.cssText = "padding:15px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:14px; margin-bottom:12px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.02);";
+        
+        // Klick auf ein Suchergebnis öffnet das Dokument direkt im Editor
+        div.onclick = () => {
+            document.getElementById('doc-search-input').value = '';
+            searchDocuments(); // Suche zurücksetzen
+            showPage('editor', document.querySelectorAll('.nav-btn')[5]); // Zur Briefe-Seite wechseln
+            openExistingNote(n.id);
+        };
+        
+        div.innerHTML = `<div style="display:flex; align-items:center; gap:10px;"><i data-feather="file-text" style="color:var(--primary-color);"></i> <strong>${n.title}</strong></div><div style="font-size:0.8rem; color:gray; margin-top:8px;">Gespeichert am: ${n.date}</div>`;
+        resultsView.appendChild(div);
+    });
+    feather.replace();
+}
 
 
 
