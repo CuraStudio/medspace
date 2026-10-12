@@ -125,6 +125,13 @@
         <!-- Dokumente (Akte) -->
         <section id="dokumente" class="page-section">
             <h2>Dokumente</h2>
+                    <!-- NEU: Suchfunktion für die Akte -->
+        <div style="position: relative; margin-bottom: 20px;">
+            <i data-feather="search" style="position: absolute; left: 16px; top: 14px; color: gray;"></i>
+            <input type="text" id="doc-search-input" placeholder="Dokumente durchsuchen..." class="clean-input" style="padding-left: 45px; margin-bottom: 0;" oninput="searchDocuments()">
+        </div>
+        <div id="search-results-view" style="display: none; margin-bottom: 20px;"></div>
+
             <div id="folder-list-view">
                 <div class="folder-grid" id="folder-container"></div>
                 <div class="card" style="margin-top: 20px;">
